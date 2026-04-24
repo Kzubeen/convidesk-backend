@@ -50,7 +50,7 @@ function autoReply(text) {
     return "Hum Monday-Saturday, 9AM-7PM open hain.";
   }
   if (text.includes('location') || text.includes('address') || text.includes('kahan')) {
-    return "Hamara address: [Yahan address daalo]";
+    return "Hamara address: gwaltoli";
   }
   return "Shukriya! Hum jald reply karenge.";
 }
