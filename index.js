@@ -39,51 +39,75 @@ app.post('/webhook', async (req, res) => {
 
 async function getReply(from, text) {
   try {
-    // WhatsApp account dhundo number se
-    const { data: waAccount } = await supabase
-      .from('whatsapp_accounts')
+    const { data: firstBusiness } = await supabase
+      .from('businesses')
       .select('user_id')
-      .eq('phone_number', from)
+      .limit(1)
       .single();
 
-    let userId = waAccount?.user_id;
-
-    // Agar nahi mila toh pehla business use karo (testing ke liye)
-    if (!userId) {
-      const { data: firstBusiness } = await supabase
-        .from('businesses')
-        .select('user_id')
-        .limit(1)
-        .single();
-      userId = firstBusiness?.user_id;
-    }
+    const userId = firstBusiness?.user_id;
 
     if (!userId) {
-      return "Shukriya message karne ke liye! Hum jald reply karenge.";
+      return "Shukriya! Hum jald reply karenge.";
     }
 
-    // Auto reply rules fetch karo
+    // Price query
+    if (text.includes('price') || text.includes('rate') ||
+        text.includes('kitna') || text.includes('cost') ||
+        text.includes('kya hai') || text.includes('btao')) {
+
+      const { data: products } = await supabase
+        .from('products')
+        .select('name, price, stock')
+        .eq('user_id', userId);
+
+      if (products && products.length > 0) {
+        let reply = "Hamare products ki price list:\n\n";
+        products.forEach(p => {
+          reply += `• ${p.name}: ₹${p.price}\n`;
+        });
+        return reply;
+      }
+    }
+
+    // Stock query
+    if (text.includes('stock') || text.includes('available') ||
+        text.includes('hai kya') || text.includes('milega')) {
+
+      const { data: products } = await supabase
+        .from('products')
+        .select('name, stock')
+        .eq('user_id', userId);
+
+      if (products && products.length > 0) {
+        let reply = "Stock availability:\n\n";
+        products.forEach(p => {
+          const status = p.stock > 0 ? `${p.stock} units available` : "Out of stock";
+          reply += `• ${p.name}: ${status}\n`;
+        });
+        return reply;
+      }
+    }
+
+    // Auto reply rules
     const { data: rules } = await supabase
       .from('auto_reply_rules')
       .select('*')
       .eq('user_id', userId);
 
-    if (!rules || rules.length === 0) {
-      return "Shukriya! Hum jald reply karenge.";
-    }
-
-    // Matching rule dhundo
-    for (const rule of rules) {
-      const keywords = rule.keyword?.toLowerCase();
-if (keywords && text.includes(keywords)) {
-  return rule.reply;
-}
+    if (rules && rules.length > 0) {
+      for (const rule of rules) {
+        const keyword = rule.keyword?.toLowerCase();
+        if (keyword && text.includes(keyword)) {
+          return rule.reply;
+        }
+      }
     }
 
     return "Shukriya message karne ke liye! Koi aur sawaal ho toh batayein.";
 
   } catch (err) {
-    console.error('Supabase error:', err);
+    console.error('Error:', err);
     return "Shukriya! Hum jald reply karenge.";
   }
 }
