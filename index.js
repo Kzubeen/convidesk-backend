@@ -74,10 +74,10 @@ async function getReply(from, text) {
 
     // Matching rule dhundo
     for (const rule of rules) {
-      const keywords = rule.trigger?.toLowerCase();
-      if (keywords && text.includes(keywords)) {
-        return rule.response;
-      }
+      const keywords = rule.keyword?.toLowerCase();
+if (keywords && text.includes(keywords)) {
+  return rule.reply;
+}
     }
 
     return "Shukriya message karne ke liye! Koi aur sawaal ho toh batayein.";
